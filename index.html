@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Map Widget</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet-src.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
@@ -82,7 +83,7 @@
       <input type="checkbox" id="cbxMode">
       <span id="lblText">All locations</span>
     </label>
-    <br />
+    <br>
     <table>
       <tr>
         <td><label id="lblSource" for="mapSource">Source</label></td>
@@ -164,11 +165,29 @@
       amap = map;
     }
 
+    function showProblem(txt) {
+      document.getElementById('map').innerHTML = '<div class="error">' + txt + '</div>';
+    }
+
+    function selectMaker(id) {
+      const previouslyClicked = popups[selectedRowId];
+      if (previouslyClicked) {
+        previouslyClicked.setIcon(defaultIcon);
+      }
+      const marker = popups[id];
+      if (!marker) { return null; }
+
+      selectedRowId = id;
+
+      marker.setIcon(selectedIcon);
+      grist.setCursorPos?.({ rowId: id }).catch(() => { });
+
+      return marker;
+    }
+
     grist.onOptions((options) => {
-      const newSource = options?.mapSource ?? mapSource;
-      mapSource = newSource;
-      const newCopyright = options?.mapCopyright ?? mapCopyright;
-      mapCopyright = newCopyright;
+      mapSource = options?.mapSource ?? mapSource;
+      mapCopyright = options?.mapCopyright ?? mapCopyright;
     });
 
     grist.ready({
@@ -181,6 +200,11 @@
         { name: "GeocodedAddress", type: 'Text', title: 'Geocoded Address', optional: true },
       ],
       allowSelectBy: true,
+    });
+
+    grist.onRecords((data) => {
+      selectedRecords = data;
+      updateMap(selectedRecords);
     });
   </script>
 </body>
