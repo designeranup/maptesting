@@ -20,15 +20,6 @@
     html, body, #map {
       margin: 0;
       padding: 0;
-      background:
-        radial-gradient(#eee 3px, transparent 4px),
-        radial-gradient(#eee 3px, transparent 4px),
-        linear-gradient(#fff 4px, transparent 0),
-        linear-gradient(45deg, transparent 74px, transparent 75px, #a4a4a4 75px, #a4a4a4 76px, transparent 77px, transparent 109px),
-        linear-gradient(-45deg, transparent 75px, transparent 76px, #a4a4a4 76px, #a4a4a4 77px, transparent 78px, transparent 109px),
-        #fff;
-      background-size: 109px 109px, 109px 109px,100% 6px, 109px 109px, 109px 109px;
-      background-position: 54px 55px, 0px 0px, 0px 0px, 0px 0px, 0px 0px;
     }
 
     .error {
@@ -105,8 +96,9 @@
     let selectedRowId = null;
     let selectedRecords = null;
     let mode = 'multi';
-    let mapSource = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    let mapCopyright = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
+    let mapSource = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+    let mapCopyright = 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012';
+
     const Name = "Name";
     const Longitude = "Longitude";
     const Latitude = "Latitude";
@@ -150,6 +142,7 @@
         showProblem("No data found yet");
         return;
       }
+
       const tiles = L.tileLayer(mapSource, { attribution: mapCopyright });
       const error = document.querySelector('.error');
       if (error) { error.remove(); }
@@ -161,29 +154,58 @@
           console.warn(e);
         }
       }
+
       const map = L.map('map', { layers: [tiles], wheelPxPerZoomLevel: 90 });
       amap = map;
+
+      const points = [];
+      popups = {};
+
+      const markers = L.markerClusterGroup({
+        disableClusteringAtZoom: 18,
+        maxClusterRadius: 30,
+        showCoverageOnHover: true,
+      });
+
+      for (const rec of data) {
+        const { id, name, lng, lat } = {
+          id: rec.id,
+          name: rec[Name],
+          lng: rec[Longitude],
+          lat: rec[Latitude],
+        };
+
+        if (!lng || !lat) continue;
+        const pt = new L.LatLng(lat, lng);
+        points.push(pt);
+
+        const marker = L.marker(pt, {
+          title: name,
+          id,
+          icon: defaultIcon,
+        }).bindPopup(name);
+
+        markers.addLayer(marker);
+        popups[id] = marker;
+      }
+
+      map.addLayer(markers);
+
+      try {
+        map.fitBounds(new L.LatLngBounds(points), { maxZoom: 15, padding: [0, 0] });
+      } catch (err) {
+        console.warn('Cannot fit bounds');
+      }
     }
 
     function showProblem(txt) {
       document.getElementById('map').innerHTML = '<div class="error">' + txt + '</div>';
     }
 
-    function selectMaker(id) {
-      const previouslyClicked = popups[selectedRowId];
-      if (previouslyClicked) {
-        previouslyClicked.setIcon(defaultIcon);
-      }
-      const marker = popups[id];
-      if (!marker) { return null; }
-
-      selectedRowId = id;
-
-      marker.setIcon(selectedIcon);
-      grist.setCursorPos?.({ rowId: id }).catch(() => { });
-
-      return marker;
-    }
+    grist.onRecords((data) => {
+      selectedRecords = data;
+      updateMap(selectedRecords);
+    });
 
     grist.onOptions((options) => {
       mapSource = options?.mapSource ?? mapSource;
@@ -195,16 +217,11 @@
         "Name",
         { name: "Longitude", type: 'Numeric' },
         { name: "Latitude", type: 'Numeric' },
-        { name: "Geocode", type: 'Bool', title: 'Geocode', optional: true },
+        { name: "Geocode", type: 'Bool', optional: true },
         { name: "Address", type: 'Text', optional: true },
-        { name: "GeocodedAddress", type: 'Text', title: 'Geocoded Address', optional: true },
+        { name: "GeocodedAddress", type: 'Text', optional: true },
       ],
       allowSelectBy: true,
-    });
-
-    grist.onRecords((data) => {
-      selectedRecords = data;
-      updateMap(selectedRecords);
     });
   </script>
 </body>
