@@ -193,6 +193,36 @@
 
       try {
         map.fitBounds(new L.LatLngBounds(points), { maxZoom: 15, padding: [0, 0] });
-     
-::contentReference[oaicite:0]{index=0}
- 
+      } catch (err) {
+        console.warn('Cannot fit bounds');
+      }
+    }
+
+    function showProblem(txt) {
+      document.getElementById('map').innerHTML = '<div class="error">' + txt + '</div>';
+    }
+
+    grist.onRecords((data) => {
+      selectedRecords = data;
+      updateMap(selectedRecords);
+    });
+
+    grist.onOptions((options) => {
+      mapSource = options?.mapSource ?? mapSource;
+      mapCopyright = options?.mapCopyright ?? mapCopyright;
+    });
+
+    grist.ready({
+      columns: [
+        "Name",
+        { name: "Longitude", type: 'Numeric' },
+        { name: "Latitude", type: 'Numeric' },
+        { name: "Geocode", type: 'Bool', optional: true },
+        { name: "Address", type: 'Text', optional: true },
+        { name: "GeocodedAddress", type: 'Text', optional: true },
+      ],
+      allowSelectBy: true,
+    });
+  </script>
+</body>
+</html>
