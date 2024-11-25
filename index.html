@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
   <style>
-    /* Full-screen Map Styling */
     #map {
       width: 100vw;
       height: 100vh;
@@ -19,7 +18,15 @@
     html, body, #map {
       margin: 0;
       padding: 0;
-      background-color: #f9f9f9;
+      background:
+        radial-gradient(#eee 3px, transparent 4px),
+        radial-gradient(#eee 3px, transparent 4px),
+        linear-gradient(#fff 4px, transparent 0),
+        linear-gradient(45deg, transparent 74px, transparent 75px, #a4a4a4 75px, #a4a4a4 76px, transparent 77px, transparent 109px),
+        linear-gradient(-45deg, transparent 75px, transparent 76px, #a4a4a4 76px, #a4a4a4 77px, transparent 78px, transparent 109px),
+        #fff;
+      background-size: 109px 109px, 109px 109px, 100% 6px, 109px 109px, 109px 109px;
+      background-position: 54px 55px, 0px 0px, 0px 0px, 0px 0px, 0px 0px;
     }
 
     .error {
@@ -29,7 +36,6 @@
       margin: 2em;
     }
 
-    /* Settings Modal */
     #settings {
       position: absolute;
       top: 10px;
@@ -41,155 +47,163 @@
       display: none;
       background: white;
     }
-
     #settings > * {
       color: black;
     }
-
     #btnClose {
       font-size: small;
       margin-bottom: 5px;
       text-align: right;
       cursor: pointer;
     }
-
     #btnClose:hover {
       text-decoration: underline;
     }
-
-    /* Marker Clustering */
-    .marker-cluster-selected {
-      border: 3px solid #16b378;
+    #lblText {
+      min-width: 100px;
+      display: inline-block;
     }
 
-    /* Background Styling */
-    body {
-      background:
-        radial-gradient(#eee 3px, transparent 4px),
-        radial-gradient(#eee 3px, transparent 4px),
-        linear-gradient(#fff 4px, transparent 0),
-        linear-gradient(45deg, transparent 74px, transparent 75px, #a4a4a4 75px, #a4a4a4 76px, transparent 77px, transparent 109px),
-        linear-gradient(-45deg, transparent 75px, transparent 76px, #a4a4a4 76px, #a4a4a4 77px, transparent 78px, transparent 109px),
-        #fff;
-      background-size: 109px 109px, 109px 109px, 100% 6px, 109px 109px, 109px 109px;
-      background-position: 54px 55px, 0px 0px, 0px 0px, 0px 0px, 0px 0px;
+    /* JV: Needed to highlight selected cluster */
+    .marker-cluster-selected {
+      border: 3px solid #16b378;
     }
   </style>
 </head>
 <body>
-  <!-- Settings Panel -->
-  <div id="settings">
-    <div id="btnClose">✖ Close</div>
-    <div>
-      <label id="lblText">Latitude Field:</label>
-      <select id="latitudeField"></select>
-    </div>
-    <div>
-      <label id="lblText">Longitude Field:</label>
-      <select id="longitudeField"></select>
-    </div>
-    <div>
-      <label id="lblText">Name Field:</label>
-      <select id="nameField"></select>
-    </div>
-  </div>
-  
   <!-- Map Container -->
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
+  <!-- Settings Panel -->
+  <div id="settings">
+    <div id="btnClose">✖ Close</div>
+    <label id="lblToggle" for="cbxMode">
+      <input type="checkbox" id="cbxMode">
+      <span id="lblText">All locations</span>
+    </label>
+    <br/>
+    <table>
+      <tr>
+        <td><label id="lblSource" for="mapSource">Source</label></td>
+        <td><input id="mapSource"></td>
+      </tr>
+      <tr>
+        <td><label id="lblCopyright" for="mapCopyright">Copyright</label></td>
+        <td><input id="mapCopyright"></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- JavaScript Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-  <!-- MarkerCluster JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const map = L.map('map', {
-        center: [0, 0], // Default center
-        zoom: 2        // Default zoom level
-      });
+    "use strict";
 
-      // Use CartoDB.Positron for improved visualization
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
+    let amap;
+    let popups = {};
+    let selectedTableId = null;
+    let selectedRowId = null;
+    let selectedRecords = null;
+    let mode = 'multi';
+    let mapSource = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    let mapCopyright = 'Tiles &copy; CartoDB &mdash; Map data &copy; OpenStreetMap contributors';
+    const Name = "Name";
+    const Longitude = "Longitude";
+    const Latitude = "Latitude";
 
-      const markers = L.markerClusterGroup();
-      let data = []; // Placeholder for table data
+    const selectedIcon = new L.Icon({
+      iconUrl: 'marker-icon-green.png',
+      iconRetinaUrl: 'marker-icon-green-2x.png',
+      shadowUrl: 'marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
-      function loadMapData(latField, lonField, nameField) {
-        markers.clearLayers();
-        if (!data || data.length === 0) {
-          showError("Map data not yet available");
-          return;
+    const defaultIcon = new L.Icon.Default();
+
+    const selectedRowClusterIconFactory = function (selectedMarkerGetter) {
+      return function (cluster) {
+        var childCount = cluster.getChildCount();
+
+        let isSelected = false;
+        try {
+          const selectedMarker = selectedMarkerGetter();
+          isSelected = cluster.getAllChildMarkers().filter((m) => m == selectedMarker).length > 0;
+        } catch (e) {
+          console.error("Error in clusterIconFactory in map widget", e);
         }
 
-        data.forEach(row => {
-          const lat = row[latField];
-          const lon = row[lonField];
-          const name = row[nameField];
-          if (lat && lon) {
-            const marker = L.marker([lat, lon]).bindPopup(name || 'Unnamed location');
-            markers.addLayer(marker);
-          }
-        });
-
-        if (markers.getLayers().length === 0) {
-          showError("No valid data points to display.");
-          map.setView([0, 0], 2); // Reset view
+        var c = ' marker-cluster-';
+        if (childCount < 10) {
+          c += 'small';
+        } else if (childCount < 100) {
+          c += 'medium';
         } else {
-          map.addLayer(markers);
-          map.fitBounds(markers.getBounds());
+          c += 'large';
         }
-      }
 
-      function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error';
-        errorDiv.innerText = message;
-        document.body.appendChild(errorDiv);
-      }
-
-      // Populate dropdowns
-      function populateDropdowns(fields) {
-        const latDropdown = document.getElementById('latitudeField');
-        const lonDropdown = document.getElementById('longitudeField');
-        const nameDropdown = document.getElementById('nameField');
-        fields.forEach(field => {
-          const option = new Option(field, field);
-          latDropdown.add(option.cloneNode(true));
-          lonDropdown.add(option.cloneNode(true));
-          nameDropdown.add(option.cloneNode(true));
+        return new L.DivIcon({
+          html: '<div><span>' + childCount + '</span></div>',
+          className: 'marker-cluster' + c + (isSelected ? ' marker-cluster-selected' : ''),
+          iconSize: new L.Point(40, 40)
         });
+      };
+    };
+
+    async function updateMap(data) {
+      const map = L.map('map', {
+        layers: [L.tileLayer(mapSource, { attribution: mapCopyright })],
+        wheelPxPerZoomLevel: 90
+      });
+
+      const points = [];
+      popups = {};
+      const markers = L.markerClusterGroup({
+        disableClusteringAtZoom: 18,
+        maxClusterRadius: 30,
+        showCoverageOnHover: true,
+        iconCreateFunction: selectedRowClusterIconFactory(() => popups[selectedRowId])
+      });
+
+      for (const rec of data) {
+        const { id, name, lng, lat } = rec;
+        if (Math.abs(lat) < 0.01 && Math.abs(lng) < 0.01) {
+          continue;
+        }
+
+        const pt = new L.LatLng(lat, lng);
+        points.push(pt);
+
+        const marker = L.marker(pt, {
+          title: name,
+          id: id,
+          icon: (id == selectedRowId) ? selectedIcon : defaultIcon
+        });
+
+        marker.bindPopup(name);
+        markers.addLayer(marker);
+        popups[id] = marker;
       }
 
-      // Sample data for demonstration
-      data = [
-        { lat: 37.7749, lon: -122.4194, name: 'San Francisco' },
-        { lat: 40.7128, lon: -74.0060, name: 'New York' }
-      ];
+      map.addLayer(markers);
+      if (points.length > 0) {
+        map.fitBounds(new L.LatLngBounds(points), { maxZoom: 15, padding: [0, 0] });
+      }
+    }
 
-      const fields = ['lat', 'lon', 'name'];
-      populateDropdowns(fields);
-
-      const latDropdown = document.getElementById('latitudeField');
-      const lonDropdown = document.getElementById('longitudeField');
-      const nameDropdown = document.getElementById('nameField');
-
-      latDropdown.addEventListener('change', function () {
-        loadMapData(latDropdown.value, lonDropdown.value, nameDropdown.value);
-      });
-
-      lonDropdown.addEventListener('change', function () {
-        loadMapData(latDropdown.value, lonDropdown.value, nameDropdown.value);
-      });
-
-      nameDropdown.addEventListener('change', function () {
-        loadMapData(latDropdown.value, lonDropdown.value, nameDropdown.value);
-      });
-
-      loadMapData('lat', 'lon', 'name'); // Default field selection
+    grist.onRecords((data) => {
+      const mappedData = data.map((rec) => ({
+        id: rec.id,
+        name: rec[Name],
+        lng: rec[Longitude],
+        lat: rec[Latitude]
+      }));
+      updateMap(mappedData);
     });
   </script>
 </body>
