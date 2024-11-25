@@ -2,33 +2,29 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <title>Integrated Map Widget</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Map Widget</title>
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet-src.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Leaflet MarkerCluster CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <!-- Custom CSS -->
   <style>
     #map {
       width: 100vw;
       height: 100vh;
     }
-
     html, body, #map {
       margin: 0;
       padding: 0;
     }
-
     .error {
       background: red;
       color: white;
       padding: 2em;
       margin: 2em;
     }
-
     #settings {
       position: absolute;
       top: 10px;
@@ -40,27 +36,22 @@
       display: none;
       background: white;
     }
-
     #settings > * {
       color: black;
     }
-
     #btnClose {
       font-size: small;
       margin-bottom: 5px;
       text-align: right;
       cursor: pointer;
     }
-
     #btnClose:hover {
       text-decoration: underline;
     }
-
     #lblText {
       min-width: 100px;
       display: inline-block;
     }
-
     .marker-cluster-selected {
       border: 3px solid #16b378;
     }
@@ -87,6 +78,15 @@
     </table>
   </div>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet-src.js"></script>
+  <!-- Leaflet MarkerCluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Leaflet Control Geocoder JS -->
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <!-- Grist Plugin API JS -->
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <!-- Custom JS -->
   <script>
     "use strict";
 
@@ -193,36 +193,6 @@
 
       try {
         map.fitBounds(new L.LatLngBounds(points), { maxZoom: 15, padding: [0, 0] });
-      } catch (err) {
-        console.warn('Cannot fit bounds');
-      }
-    }
-
-    function showProblem(txt) {
-      document.getElementById('map').innerHTML = '<div class="error">' + txt + '</div>';
-    }
-
-    grist.onRecords((data) => {
-      selectedRecords = data;
-      updateMap(selectedRecords);
-    });
-
-    grist.onOptions((options) => {
-      mapSource = options?.mapSource ?? mapSource;
-      mapCopyright = options?.mapCopyright ?? mapCopyright;
-    });
-
-    grist.ready({
-      columns: [
-        "Name",
-        { name: "Longitude", type: 'Numeric' },
-        { name: "Latitude", type: 'Numeric' },
-        { name: "Geocode", type: 'Bool', optional: true },
-        { name: "Address", type: 'Text', optional: true },
-        { name: "GeocodedAddress", type: 'Text', optional: true },
-      ],
-      allowSelectBy: true,
-    });
-  </script>
-</body>
-</html>
+     
+::contentReference[oaicite:0]{index=0}
+ 
