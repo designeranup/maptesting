@@ -291,7 +291,7 @@ function updateMap(data) {
   clearMakers = () => map.removeLayer(markers);
 
   try {
-    map.fitBounds(new L.LatLngBounds(points), {maxZoom: 15, padding: [0, 0]});
+    map.fitBounds(new L.LatLngBounds(points), {maxZoom: 25, padding: [0, 0]});
   } catch (err) {
     console.warn('cannot fit bounds');
   }
