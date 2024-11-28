@@ -290,11 +290,22 @@ function updateMap(data) {
 
   clearMakers = () => map.removeLayer(markers);
 
-  try {
-    map.fitBounds(new L.LatLngBounds(points), {maxZoom: 25, padding: [0, 0]});
-  } catch (err) {
-    console.warn('cannot fit bounds');
+try {
+  // Calculate the bounds of all markers
+  map.fitBounds(new L.LatLngBounds(points), {
+    maxZoom: 15,   // Adjust this value based on the density of your points
+    padding: [0, 0]
+  });
+
+  // Adjust the zoom if the bounds are too small
+  if (map.getZoom() > 15) {
+    map.setZoom(15);  // Limiting zoom to 15 for more clarity
   }
+
+} catch (err) {
+  console.warn('cannot fit bounds', err);
+}
+//here
   function makeSureSelectedMarkerIsShown() {
     const rowId = selectedRowId;
 
