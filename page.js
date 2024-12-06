@@ -12,8 +12,8 @@ let mapSource = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 let mapCopyright = 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012';
 // Required, Label value
 const Name = "Name";
-const option1 = "option1";
-const option2 = "option2";
+//const option1 = "option1";
+//const option2 = "option2";
 // Required
 const Longitude = "Longitude";
 // Required
@@ -283,14 +283,14 @@ function updateMap(data) {
       pane: (id == selectedRowId) ? "selectedMarker" : "otherMarkers",
     });
 
-    //marker.bindPopup(name);
-    const popupContent = `
-    <div>
-      <strong>${name || " "}<br>
-      <strong>${rec[option1] || " "}<br>
-      <strong>${rec[option2] || " "}<br>
-    </div>
-  `;
+    marker.bindPopup(name);
+    //const popupContent = `
+    //<div>
+    //  <strong>${name || " "}<br>
+     // <strong>${rec[option1] || " "}<br>
+     // <strong>${rec[option2] || " "}<br>
+    //</div>
+  //`;
     marker.bindbindPopup(popupContent);
     markers.addLayer(marker);
 
