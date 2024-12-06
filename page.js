@@ -291,7 +291,7 @@ function updateMap(data) {
      // <strong>${rec[option2] || " "}<br>
     //</div>
   //`;
-    marker.bindbindPopup(popupContent);
+    //marker.bindbindPopup(popupContent);
     markers.addLayer(marker);
 
     popups[id] = marker;
